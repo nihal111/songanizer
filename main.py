@@ -5,9 +5,19 @@ import subprocess
 import mechanize
 
 br = mechanize.Browser()
-filename="a.mp3"
+br.set_handle_robots(False)
+br.addheaders = [('User-agent', 'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.0.1) Gecko/2008071615 Fedora/3.0.1-1.fc9 Firefox/3.0.1')]
+#Robot error
 apikey="v6m4z1dh"
 
+
+
+
+filename="c.mp3"
+
+
+
+mp3 = eyed3.load(filename)
 p = subprocess.Popen(['fpcalc',filename], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 out, err = p.communicate()
 #print out
@@ -19,12 +29,7 @@ duration = out[a:b]
 fingerprint = out[b+13:-1]
 
 url = 'http://api.acoustid.org/v2/lookup?client='+apikey+'&meta=recordings+releasegroups+compress&duration='+duration+'&fingerprint='+fingerprint
-url = 'http://www.azlyrics.com/lyrics/metallica/theunforgivenii.html'
 info= br.open(url).read()
-print info
-
-
-'''
 artistindex1= info.find("name")
 artistindex2= info.find("\"",artistindex1+8)
 albumindex1= info.find("Album")
@@ -36,17 +41,38 @@ artist = info[(artistindex1+8):artistindex2]
 album = info[albumindex1:albumindex2]
 title =info[titleindex1:titleindex2]
 
+url = 'http://search.azlyrics.com/search.php?q='+artist+'+'+title
+url =url.replace(' ','+')
+
+br.open(url)
+
+links = []
+for link in br.links(url_regex="http://www.azlyrics.com/lyrics/"):
+	links.append(link.url)
+if (len(links)):
+	info= br.open(links[0]).read()
+	albumindex1 = info.find("glyphicon-cd")
+	albumindex1 = info.find("collapse",albumindex1)+11
+	albumindex2 = info.find("\"",albumindex1)
+	yearindex1 = info.find("(",albumindex2)+1
+	yearindex2 = info.find(")",albumindex2)
+	album = info[albumindex1:albumindex2]
+	year = int(info[yearindex1:yearindex2])
+	print album
+	print year
+	mp3.tag.album = unicode(album, "UTF-8")
+	try:
+		mp3.tag.recording_date=year
+	except:
+		print "date haga"
 
 
 print artist
-print album
 print title
 
-mp3 = eyed3.load('/home/nihal/Desktop/a.mp3')
-mp3.tag.artist = unicode('badass', "UTF-8")
-mp3.tag.album = unicode('#3', "UTF-8")
-mp3.tag.recording_date=2012
-mp3.tag.title = u"Hall of fame"
-mp3.tag.genre= u"Rock"
+
+mp3.tag.artist = unicode(artist, "UTF-8")
+
+mp3.tag.title = unicode(title, "UTF-8")
+
 mp3.tag.save()
-'''
